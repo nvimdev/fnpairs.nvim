@@ -210,12 +210,12 @@ return {
     for opening, _ in pairs(BracketPair.match) do
       vim.keymap.set('i', opening, function()
         return F.pipe(State.new(), determine_action(opening), handle_action)
-      end, { expr = true, noremap = true })
+      end, { expr = true })
     end
 
     -- Setup backspace handling
     vim.keymap.set('i', '<BS>', function()
       return handle_action(Action.Delete)
-    end, { expr = true, noremap = true })
+    end, { expr = true })
   end,
 }
