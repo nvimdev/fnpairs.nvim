@@ -113,7 +113,11 @@ local Action = {
   Nothing = { type = 'nothing' },
 }
 
+--- @class Value
+--- @field value string
+
 -- Pure functions for character handling
+-- @return Value
 local get_char_at = F.curry(function(pos, state)
   return Maybe.fromNullable(state.line:sub(pos(state), pos(state)))
 end)
