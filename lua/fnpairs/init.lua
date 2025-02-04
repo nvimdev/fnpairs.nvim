@@ -113,11 +113,7 @@ local Action = {
   Nothing = { type = 'nothing' },
 }
 
---- @class Value
---- @field value string
-
 -- Pure functions for character handling
--- @return Value
 local get_char_at = F.curry(function(pos, state)
   return Maybe.fromNullable(state.line:sub(pos(state), pos(state)))
 end)
@@ -149,10 +145,31 @@ local determine_action = F.curry(function(char, state)
     return Action.Insert(char, BracketPair.match[char])
   end
 
-  return F.pipe(state, get_char_after, function(next_char)
-    return next_char.value == BracketPair.match[char] and Action.Skip
-      or determine_char_action(char)(char)
-  end)
+  local function check_bracket_balance(str, opening_char)
+    local stack = {}
+    for i = 1, #str do
+      local c = str:sub(i, i)
+      if BracketPair.match[c] then
+        table.insert(stack, c)
+      elseif c == BracketPair.match[opening_char] then
+        if #stack == 0 or stack[#stack] ~= opening_char then
+          return false
+        end
+        table.remove(stack)
+      end
+    end
+    return true
+  end
+
+  local next_char = get_char_after(state)
+  if not Maybe.isNothing(next_char) and next_char.value == BracketPair.match[char] then
+    local substr = state.line:sub(state.cursor[2] + 1, state.cursor[2] + 1)
+    if check_bracket_balance(substr, char) then
+      return Action.Skip
+    end
+  end
+
+  return determine_char_action(char)(char)
 end)
 
 -- Action handlers
