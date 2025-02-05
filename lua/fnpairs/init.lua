@@ -92,15 +92,15 @@ end
 
 -- BracketPair ADT
 local BracketPair = {
-  match = {
-    ['('] = ')',
-    ['['] = ']',
-    ['{'] = '}',
-    ['"'] = '"',
-    ["'"] = "'",
-    ['`'] = '`',
-  },
+  ['('] = ')',
+  ['['] = ']',
+  ['{'] = '}',
+  ['"'] = '"',
+  ["'"] = "'",
+  ['`'] = '`',
 }
+
+BracketPair = vim.tbl_extend('keep', BracketPair, vim.g.fnpairs or {})
 
 -- Action ADT with smart constructors
 local Action = {
@@ -131,27 +131,27 @@ local should_skip_completion = function(char)
   local state = State.new()
   local prev_char = get_char_before(state).value
   return char == "'" and prev_char and string.match(prev_char, '[%w]') and Action.Nothing
-    or Action.Insert(char, BracketPair.match[char])
+    or Action.Insert(char, BracketPair[char])
 end
 
 local determine_char_action = function(char)
   return F.compose(should_skip_completion, function(action)
-    return action or Action.Insert(char, BracketPair.match[char])
+    return action or Action.Insert(char, BracketPair[char])
   end)
 end
 
 local determine_action = F.curry(function(char, state)
   if state.mode == 'v' or state.mode == 'V' then
-    return Action.Insert(char, BracketPair.match[char])
+    return Action.Insert(char, BracketPair[char])
   end
 
   local function check_bracket_balance(str, opening_char)
     local stack = {}
     for i = 1, #str do
       local c = str:sub(i, i)
-      if BracketPair.match[c] then
+      if BracketPair[c] then
         table.insert(stack, c)
-      elseif c == BracketPair.match[opening_char] then
+      elseif c == BracketPair[opening_char] then
         if #stack == 0 or stack[#stack] ~= opening_char then
           return false
         end
@@ -162,7 +162,7 @@ local determine_action = F.curry(function(char, state)
   end
 
   local next_char = get_char_after(state)
-  if not Maybe.isNothing(next_char) and next_char.value == BracketPair.match[char] then
+  if not Maybe.isNothing(next_char) and next_char.value == BracketPair[char] then
     local substr = state.line:sub(state.cursor[2] + 1, state.cursor[2] + 1)
     if check_bracket_balance(substr, char) then
       return Action.Skip
@@ -188,7 +188,7 @@ local handle_delete = function()
       after = get_char_after(s).value,
     }
   end, function(chars)
-    return BracketPair.match[chars.before] == chars.after and '<BS><Del>' or '<BS>'
+    return BracketPair[chars.before] == chars.after and '<BS><Del>' or '<BS>'
   end)
 end
 
@@ -207,7 +207,7 @@ end
 return {
   setup = function()
     -- Setup bracket pairs
-    for opening, _ in pairs(BracketPair.match) do
+    for opening, _ in pairs(BracketPair) do
       vim.keymap.set('i', opening, function()
         return F.pipe(State.new(), determine_action(opening), handle_action)
       end, { expr = true })
