@@ -1,4 +1,4 @@
----@diagnostic disable-next-line: redefined-local
+local api = vim.api
 local F = {}
 
 -- Core FP utilities
@@ -37,44 +37,46 @@ F.pipe = function(x, ...)
 end
 
 -- Maybe Monad
-local Maybe = {}
-Maybe.of = function(x)
-  return { value = x }
-end
-Maybe.nothing = Maybe.of(nil)
-Maybe.isNothing = function(maybe)
-  return maybe.value == nil
-end
-Maybe.fromNullable = function(x)
-  return x == nil and Maybe.nothing or Maybe.of(x)
-end
-
-Maybe.map = F.curry(function(fn, maybe)
-  if Maybe.isNothing(maybe) then
-    return Maybe.nothing
-  end
-  return Maybe.of(fn(maybe.value))
-end)
-
-Maybe.chain = F.curry(function(fn, maybe)
-  if Maybe.isNothing(maybe) then
-    return Maybe.nothing
-  end
-  return fn(maybe.value)
-end)
+F.Maybe = {
+  of = function(x)
+    return { kind = 'Maybe', value = x }
+  end,
+  nothing = { kind = 'Maybe', value = nil },
+  isNothing = function(maybe)
+    return maybe.value == nil
+  end,
+  fromNullable = function(x)
+    return x == nil and F.Maybe.nothing or F.Maybe.of(x)
+  end,
+  map = function(maybe, f)
+    if F.Maybe.isNothing(maybe) then
+      return F.Maybe.nothing
+    end
+    return F.Maybe.of(f(maybe.value))
+  end,
+  chain = function(maybe, f)
+    if F.Maybe.isNothing(maybe) then
+      return F.Maybe.nothing
+    end
+    return f(maybe.value)
+  end,
+  getOrElse = function(maybe, default)
+    return maybe.value or default
+  end,
+}
 
 -- Pure state management
 local StateManager = {}
 StateManager.get = function()
   return {
     get_line = function()
-      return vim.api.nvim_get_current_line()
+      return api.nvim_get_current_line()
     end,
     get_cursor = function()
-      return vim.api.nvim_win_get_cursor(0)
+      return api.nvim_win_get_cursor(0)
     end,
     get_mode = function()
-      return vim.api.nvim_get_mode().mode
+      return api.nvim_get_mode().mode
     end,
   }
 end
@@ -90,7 +92,7 @@ State.new = function()
   }
 end
 
--- BracketPair ADT
+-- BracketPair ADT with configuration support
 local BracketPair = {
   ['('] = ')',
   ['['] = ']',
@@ -115,7 +117,7 @@ local Action = {
 
 -- Pure functions for character handling
 local get_char_at = F.curry(function(pos, state)
-  return Maybe.fromNullable(state.line:sub(pos(state), pos(state)))
+  return F.Maybe.fromNullable(state.line:sub(pos(state), pos(state)))
 end)
 
 local get_char_before = get_char_at(function(state)
@@ -162,7 +164,7 @@ local determine_action = F.curry(function(char, state)
   end
 
   local next_char = get_char_after(state)
-  if not Maybe.isNothing(next_char) and next_char.value == BracketPair[char] then
+  if not F.Maybe.isNothing(next_char) and next_char.value == BracketPair[char] then
     local substr = state.line:sub(state.cursor[2] + 1, state.cursor[2] + 1)
     if check_bracket_balance(substr, char) then
       return Action.Skip
@@ -176,6 +178,7 @@ end)
 local handle_skip = function()
   return '<Right>'
 end
+
 local handle_insert = function(action)
   return action.opening .. action.closing .. '<Left>'
 end
