@@ -132,8 +132,10 @@ end)
 local should_skip_completion = function(char)
   local state = State.new()
   local prev_char = get_char_before(state).value
-  return char == "'" and prev_char and string.match(prev_char, '[%w]') and Action.Nothing
-    or Action.Insert(char, BracketPair[char])
+  if char == "'" and prev_char and string.match(prev_char, '[%w]') then
+    return Action.Insert(char, BracketPair[char])
+  end
+  return Action.Insert(char, BracketPair[char])
 end
 
 local determine_char_action = function(char)
