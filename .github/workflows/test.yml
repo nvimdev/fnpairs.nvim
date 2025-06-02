@@ -29,7 +29,9 @@ jobs:
       - uses: leafo/gh-actions-luarocks@v5
 
       - name: Install vusted
-        run: luarocks --lua-version=5.1 install vusted
+        run: |
+          luarocks install busted --only-server https://raw.githubusercontent.com/rocks-moonscript-org/moonrocks-mirror/daab2726276e3282dc347b89a42a5107c3500567
+          luarocks --lua-version=5.1 install vusted
 
       - name: Run test
         run: vusted ./test
