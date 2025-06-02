@@ -1,4 +1,4 @@
-*fnpairs.nvim.txt*        For NVIM v0.8.0        Last change: 2025 February 09
+*fnpairs.nvim.txt*          For NVIM v0.8.0          Last change: 2025 June 02
 
 ==============================================================================
 Table of Contents                             *fnpairs.nvim-table-of-contents*
