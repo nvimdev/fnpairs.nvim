@@ -1,27 +1,35 @@
-name: Run tests
+name: test
 on:
-  pull_request: ~
-  push:
+  pull_request:
     branches:
-      - main
+      - master
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  build:
-    name: Run tests
-    runs-on: ubuntu-latest
+  test:
+    name: Run Test
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        neovim_version: ['nightly', 'stable']
-
+        os: [ubuntu-latest, macos-latest]
+        nvim_version: [nightly, 'v0.10.4']
     steps:
       - uses: actions/checkout@v4
-      - name: Download stylua
-        shell: bash
-        run: |
-          wget "https://github.com/JohnnyMorganz/StyLua/releases/download/v0.18.0/stylua-linux.zip" -P /home/runner/.local/bin
-          unzip /home/runner/.local/bin/stylua-linux.zip -d /home/runner/.local/bin
-          chmod +x /home/runner/.local/bin/stylua
-      - name: Run tests
-        uses: nvim-neorocks/nvim-busted-action@v1
+      - uses: rhysd/action-setup-vim@v1
         with:
-          nvim_version: ${{ matrix.neovim_version }}
+          neovim: true
+          version: ${{ matrix.nvim_version }}
+
+      - uses: leafo/gh-actions-lua@v11
+        with:
+          luaVersion: "luajit-openresty"
+      - uses: leafo/gh-actions-luarocks@v5
+
+      - name: Install vusted
+        run: luarocks install vusted
+
+      - name: Run test
+        run: vusted ./test
